@@ -23,6 +23,7 @@ type PushClient struct {
 	host        string
 	apiURL      string
 	accessToken string
+	useFCMV1    bool
 	httpClient  *http.Client
 }
 
@@ -32,6 +33,7 @@ type ClientConfig struct {
 	Host        string
 	APIURL      string
 	AccessToken string
+	UseFCMV1    bool
 	HTTPClient  *http.Client
 }
 
@@ -43,6 +45,7 @@ func NewPushClient(config *ClientConfig) *PushClient {
 	apiURL := DefaultBaseAPIURL
 	httpClient := DefaultHTTPClient
 	accessToken := ""
+	useFCMV1 := false
 	if config != nil {
 		if config.Host != "" {
 			host = config.Host
@@ -56,11 +59,14 @@ func NewPushClient(config *ClientConfig) *PushClient {
 		if config.HTTPClient != nil {
 			httpClient = config.HTTPClient
 		}
+		useFCMV1 = config.UseFCMV1
+
 	}
 	c.host = host
 	c.apiURL = apiURL
 	c.httpClient = httpClient
 	c.accessToken = accessToken
+	c.useFCMV1 = useFCMV1
 	return c
 }
 
@@ -106,6 +112,12 @@ func (c *PushClient) publishInternal(messages []PushMessage) ([]PushResponse, er
 	req, err := http.NewRequest("POST", url, bytes.NewReader(jsonBytes))
 	if err != nil {
 		return nil, err
+	}
+
+	if c.useFCMV1 {
+		query := req.URL.Query()
+		query.Add("useFcmV1", "true")
+		req.URL.RawQuery = query.Encode()
 	}
 
 	// Add appropriate headers
